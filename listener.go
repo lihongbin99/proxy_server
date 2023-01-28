@@ -8,22 +8,22 @@ import (
 	"github.com/lihongbin99/log"
 )
 
-type listener struct {
+type Listener struct {
 	NetListener net.Listener
 	proxyCh     chan *Proxy
 	isRun       bool
 	err         error
 }
 
-func ListenerNew(listen net.Listener) *listener {
-	l := &listener{
+func ListenerNew(listen net.Listener) *Listener {
+	l := &Listener{
 		NetListener: listen,
 		proxyCh:     make(chan *Proxy, 8),
 		isRun:       false,
 		err:         nil,
 	}
 
-	go func(l *listener) {
+	go func(l *Listener) {
 		for {
 			conn, err := l.NetListener.Accept()
 			if err != nil {
@@ -32,7 +32,7 @@ func ListenerNew(listen net.Listener) *listener {
 				break
 			}
 
-			go func(l *listener, c net.Conn) {
+			go func(l *Listener, c net.Conn) {
 				// 偷窥代理协议
 				conn := utils.PeepIo{Conn: c}
 				protocol, err := conn.PeepN(1)
@@ -67,6 +67,6 @@ func ListenerNew(listen net.Listener) *listener {
 	return l
 }
 
-func (t *listener) Accept() (*Proxy, error) {
+func (t *Listener) Accept() (*Proxy, error) {
 	return <-t.proxyCh, t.err
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/lihongbin99/log"
 )
 
-func Listen(address string) (*listener, error) {
+func Listen(address string) (*Listener, error) {
 	listen, err := net.Listen("tcp", address)
 	return ListenerNew(listen), err
 }
