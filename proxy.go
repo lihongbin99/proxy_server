@@ -19,7 +19,7 @@ func (p *Proxy) Error(err error) *Proxy {
 	return p
 }
 
-func (p *Proxy) Close(err error) {
+func (p *Proxy) Close() {
 	if nil != p.ClientConn {
 		p.ClientConn.Close()
 	}
