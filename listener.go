@@ -9,23 +9,23 @@ import (
 )
 
 type Listener struct {
-	NetListener net.Listener
-	proxyCh     chan *Proxy
-	isRun       bool
-	err         error
+	net.Listener
+	proxyCh chan *Proxy
+	isRun   bool
+	err     error
 }
 
 func ListenerNew(listen net.Listener) *Listener {
 	l := &Listener{
-		NetListener: listen,
-		proxyCh:     make(chan *Proxy, 8),
-		isRun:       false,
-		err:         nil,
+		Listener: listen,
+		proxyCh:  make(chan *Proxy, 8),
+		isRun:    false,
+		err:      nil,
 	}
 
 	go func(l *Listener) {
 		for {
-			conn, err := l.NetListener.Accept()
+			conn, err := l.Listener.Accept()
 			if err != nil {
 				l.err = err
 				l.proxyCh <- nil
@@ -61,7 +61,7 @@ func ListenerNew(listen net.Listener) *Listener {
 				l.proxyCh <- proxy
 			}(l, conn)
 		}
-		l.NetListener.Close()
+		l.Close()
 	}(l)
 
 	return l
