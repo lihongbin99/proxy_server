@@ -18,3 +18,12 @@ func (p *Proxy) Error(err error) *Proxy {
 	p.Err = err
 	return p
 }
+
+func (p *Proxy) Close(err error) {
+	if nil != p.ClientConn {
+		p.ClientConn.Close()
+	}
+	if nil != p.ServerConn {
+		p.ServerConn.Close()
+	}
+}
