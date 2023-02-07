@@ -101,6 +101,13 @@ func Socks4ServerProxy(conn net.Conn) *Proxy {
 }
 
 func Socks4Connect(proxy *Proxy, req *Socks4Req) (*Socks4Rep, error) {
+	if targetConn, err := TryConnectServer(req.HOSTNAME, req.DSTPORT); err != nil {
+		return Socks4MakeRep(proxy, req), err
+	} else if targetConn != nil {
+		proxy.ServerConn = targetConn
+		return Socks4MakeRep(proxy, req), nil
+	}
+
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", req.HOSTNAME, req.DSTPORT))
 	if err != nil {
 		return nil, err

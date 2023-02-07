@@ -1,5 +1,7 @@
 package proxy_server
 
+import "net"
+
 var (
 	httpProxyAddr   string
 	httpsProxyAddr  string
@@ -33,4 +35,20 @@ func SetSocks4Proxy(proxyAddr string) {
 
 func SetSocks5Proxy(proxyAddr string) {
 	socks5ProxyAddr = proxyAddr
+}
+
+func TryConnectServer(hostname string, port uint16) (net.Conn, error) {
+	if socks5ProxyAddr != "" {
+		return Socks5(hostname, port)
+	}
+	if socks4ProxyAddr != "" {
+		//
+	}
+	if httpsProxyAddr != "" {
+		//
+	}
+	if httpProxyAddr != "" {
+		//
+	}
+	return nil, nil
 }

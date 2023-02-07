@@ -160,6 +160,13 @@ func Socks5Authenticate(conn net.Conn) error {
 }
 
 func Socks5Connect(proxy *Proxy, req *Socks5Req) (*Socks5Rep, error) {
+	if targetConn, err := TryConnectServer(req.HOSTNAME, req.DSTPORT); err != nil {
+		return Socks5MakeRep(proxy, req, 3), err
+	} else if targetConn != nil {
+		proxy.ServerConn = targetConn
+		return Socks5MakeRep(proxy, req, 0), nil
+	}
+
 	addrStr := ""
 	if strings.Index(req.HOSTNAME, ":") < 0 {
 		addrStr = fmt.Sprintf("%s:%d", req.HOSTNAME, req.DSTPORT)
@@ -175,8 +182,8 @@ func Socks5Connect(proxy *Proxy, req *Socks5Req) (*Socks5Rep, error) {
 		// 暂时没有判断更多的异常
 		return Socks5MakeRep(proxy, req, 3), err
 	}
-	proxy.ServerConn = targetConn
 
+	proxy.ServerConn = targetConn
 	return Socks5MakeRep(proxy, req, 0), nil
 }
 
@@ -247,4 +254,53 @@ func Socks5MakeRepBuf(rep *Socks5Rep) []byte {
 	buf = append(buf, rep.BNDADDR...)
 	buf = append(buf, byte(rep.BNDPORT>>8), byte(rep.BNDPORT))
 	return buf
+}
+
+func Socks5(hostname string, port uint16) (net.Conn, error) {
+	addr, err := net.ResolveTCPAddr("tcp", socks5ProxyAddr)
+	if err != nil {
+		return nil, err
+	}
+	proxyConn, err := net.DialTCP("tcp", nil, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	proxyConn.Write([]byte{5, 1, 0})
+
+	var authenticateBuf [3]byte
+	readLen, err := proxyConn.Read(authenticateBuf[:])
+	if err != nil {
+		return nil, err
+	}
+
+	if readLen != 2 {
+		return nil, fmt.Errorf("Read Socks5 Protocol Error: ReadLen(%d)", readLen)
+	}
+	if authenticateBuf[0] != 5 {
+		return nil, fmt.Errorf("Socks5 Protocol Error: Protocol(%d)", authenticateBuf[0])
+	}
+	if authenticateBuf[1] != 0 {
+		return nil, fmt.Errorf("Socks5 Authenticate Error: Authenticate(%d)", authenticateBuf[1])
+	}
+
+	socks5 := make([]byte, 0)
+	socks5 = append(socks5, 5, 1, 0, 3, byte(len(hostname)))
+	socks5 = append(socks5, []byte(hostname)...)
+	socks5 = append(socks5, byte(port>>8), byte(port&0xFF))
+	proxyConn.Write(socks5)
+
+	var buf [1024]byte
+	readLen, err = proxyConn.Read(buf[:])
+	if err != nil {
+		return nil, err
+	}
+	if buf[0] != 5 {
+		return nil, fmt.Errorf("This request is not a socks5 protocol")
+	}
+	if buf[1] != 0 {
+		return nil, fmt.Errorf("Connect ServerError(%d)", buf[1])
+	}
+
+	return proxyConn, nil
 }
